@@ -8,10 +8,22 @@
 </head>
 <body>
   <header>Cat Attack</header>
-  <video id="camera" autoplay playsinline></video>
-  <br>
-  <button id="switchCamera">Switch Camera</button>
 
-  <script src="script.js"></script>
+    <div class="camera-container">
+    <video id="camera" autoplay playsinline></video>
+    <canvas id="overlay"></canvas>
+    <div id="scoreboard">Score: 0</div>
+  </div>
+
+  <div class="button-container">
+    <button id="switchCamera">Switch Camera</button>
+    <button id="shootCat">Shoot Cat 🐱</button>
+  </div>
+
+      <!-- TensorFlow.js + Face Detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection"></script>
+
+    <script src="script.js"></script>
 </body>
 </html>

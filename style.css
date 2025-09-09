@@ -13,16 +13,43 @@ header {
   font-size: 2rem;
 }
 
-video {
+.camera-container {
+  position: relative;
+  display: inline-block;
+}
+
+video, canvas {
   margin-top: 20px;
   width: 90%;
   max-width: 500px;
   border: 5px solid #333;
   border-radius: 10px;
 }
+#scoreboard {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 4px black;
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.button-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
 
 button {
-  margin-top: 20px;
   padding: 10px 20px;
   font-size: 1rem;
   background: #ff6f61;
@@ -30,6 +57,7 @@ button {
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  transition: background 0.2s ease-in-out;
 }
 
 button:hover {
