@@ -7,6 +7,7 @@ let ctx = overlay.getContext("2d");
 let model;
 let lives = 9;
 let score = 0;
+let projectiles = [];
 
 // ✅ Setup camera
 async function startCamera() {
@@ -36,6 +37,7 @@ async function detectFaces() {
   overlay.width = video.videoWidth;
   overlay.height = video.videoHeight;
 
+  // Draw faces
   predictions.forEach(pred => {
     let [x, y, w, h] = [
       pred.topLeft[0],
@@ -44,11 +46,32 @@ async function detectFaces() {
       pred.bottomRight[1] - pred.topLeft[1]
     ];
 
-    // Draw face box
     ctx.strokeStyle = "red";
     ctx.lineWidth = 3;
     ctx.strokeRect(x, y, w, h);
   });
+
+  // Draw & update projectiles
+  for (let i = 0; i < projectiles.length; i++) {
+    let p = projectiles[i];
+    p.progress += 0.05; // speed
+
+    p.x = (1 - p.progress) * (overlay.width / 2) + p.progress * p.targetX;
+    p.y = (1 - p.progress) * overlay.height + p.progress * p.targetY;
+
+    ctx.fillStyle = "orange";
+    ctx.fillRect(p.x - 10, p.y - 10, 20, 20); // placeholder cat box
+
+    // Check if reached target
+    if (p.progress >= 1) {
+      projectiles.splice(i, 1);
+      i--;
+
+      score++;
+      scoreDisplay.textContent = score;
+      showMessage("Hit! 🐱");
+    }
+  }
 
   requestAnimationFrame(detectFaces);
 }
@@ -56,23 +79,43 @@ async function detectFaces() {
 // ✅ Shoot action
 document.getElementById("shootBtn").addEventListener("click", async () => {
   if (lives <= 0) {
-    alert("Game Over! Final Score: " + score);
+    showMessage("Game Over! Final Score: " + score);
     return;
   }
 
   lives--;
   livesDisplay.textContent = lives;
 
-  // Check if face is detected when shooting
   const predictions = await model.estimateFaces(video, false);
+
   if (predictions.length > 0) {
-    score++;
-    scoreDisplay.textContent = score;
-    alert("Hit! 🐱");
+    // Pick the first detected face (center point)
+    let face = predictions[0];
+    let targetX = (face.topLeft[0] + face.bottomRight[0]) / 2;
+    let targetY = (face.topLeft[1] + face.bottomRight[1]) / 2;
+
+    // Add projectile starting from bottom center
+    projectiles.push({
+      x: overlay.width / 2,
+      y: overlay.height,
+      targetX,
+      targetY,
+      progress: 0
+    });
   } else {
-    alert("Miss!");
+    showMessage("Miss!");
   }
 });
+
+function showMessage(text) {
+const msg = document.getElementById("message");
+msg.textContent = text;
+msg.style.display = "block";
+
+setTimeout(() => {
+  msg.style.display = "none";
+}, 1000); // hides after 1s
+}
 
 // Start game
 startCamera();
