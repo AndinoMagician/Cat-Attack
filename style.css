@@ -3,63 +3,49 @@ body {
   text-align: center;
   margin: 0;
   padding: 0;
-  background: #f2f2f2;
+  background: #f0f0f0;
 }
 
 header {
-  background: #ff6f61;
+  background: #333;
   color: white;
-  padding: 20px;
-  font-size: 2rem;
+  padding: 1rem;
 }
 
-.camera-container {
-  position: relative;
-  display: inline-block;
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-video, canvas {
-  margin-top: 20px;
+video {
   width: 90%;
-  max-width: 500px;
-  border: 5px solid #333;
+  max-width: 600px;
+  border: 2px solid #333;
   border-radius: 10px;
+  margin-top: 1rem;
 }
-#scoreboard {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  font-size: 1.5rem;
-  font-weight: bold;
+
+#shootBtn {
+  margin: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  background: #ff9800;
+  border: none;
+  border-radius: 10px;
   color: white;
-  text-shadow: 2px 2px 4px black;
+}
+
+#hud {
+  font-size: 1.2rem;
 }
 
 canvas {
   position: absolute;
-  top: 0;
+  top: 100px;
   left: 0;
+  right: 0;
+  margin: auto;
   pointer-events: none;
-}
-
-.button-container {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-}
-
-button {
-  padding: 10px 20px;
-  font-size: 1rem;
-  background: #ff6f61;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s ease-in-out;
-}
-
-button:hover {
-  background: #e55b50;
 }

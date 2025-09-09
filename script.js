@@ -1,102 +1,79 @@
-let currentFacingMode = "environment"; 
-let detector;
-let videoElement = document.getElementById("camera");
-let canvas = document.getElementById("overlay");
-let ctx = canvas.getContext("2d");
-let scoreboard = document.getElementById("scoreboard");
+let video = document.getElementById("camera");
+let livesDisplay = document.getElementById("lives");
+let scoreDisplay = document.getElementById("score");
+let overlay = document.getElementById("overlay");
+let ctx = overlay.getContext("2d");
 
-let cats = []; // flying cats
+let model;
+let lives = 9;
 let score = 0;
 
+// ✅ Setup camera
 async function startCamera() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: currentFacingMode }
+    let stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }, // back camera if available
+      audio: false
     });
-    videoElement.srcObject = stream;
-
-    videoElement.onloadedmetadata = () => {
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-    };
-  } catch (error) {
-    console.error("Error accessing camera:", error);
-    alert("Camera access is required to play Cat Attack!");
+    video.srcObject = stream;
+  } catch (err) {
+    console.error("Camera error:", err);
   }
 }
 
-document.getElementById("switchCamera").addEventListener("click", () => {
-  currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-  startCamera();
-});
-
-document.getElementById("shootCat").addEventListener("click", () => {
-  shootCat();
-});
-
-// Load face detection model
+// ✅ Load face detection model
 async function loadModel() {
-  detector = await faceDetection.createDetector(faceDetection.SupportedModels.MediaPipeFaceDetector, {
-    runtime: "tfjs",
-  });
-  detectFaces();
+  model = await blazeface.load();
+  console.log("Model loaded");
 }
 
-// Face detection loop
+// ✅ Detect faces
 async function detectFaces() {
-  if (!detector) return;
-  const faces = await detector.estimateFaces(videoElement);
+  if (!model) return;
+  const predictions = await model.estimateFaces(video, false);
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  overlay.width = video.videoWidth;
+  overlay.height = video.videoHeight;
 
-  // Draw faces
-  faces.forEach(face => {
-    const box = face.box;
-    ctx.strokeStyle = "lime";
+  predictions.forEach(pred => {
+    let [x, y, w, h] = [
+      pred.topLeft[0],
+      pred.topLeft[1],
+      pred.bottomRight[0] - pred.topLeft[0],
+      pred.bottomRight[1] - pred.topLeft[1]
+    ];
+
+    // Draw face box
+    ctx.strokeStyle = "red";
     ctx.lineWidth = 3;
-    ctx.strokeRect(box.xMin, box.yMin, box.width, box.height);
-
-    // Check collisions with cats
-    cats.forEach(cat => {
-      if (
-        cat.x < box.xMin + box.width &&
-        cat.x + cat.size > box.xMin &&
-        cat.y < box.yMin + box.height &&
-        cat.y + cat.size > box.yMin
-      ) {
-        cat.hit = true;
-        score++;
-        scoreboard.textContent = `Score: ${score}`;
-      }
-    });
+    ctx.strokeRect(x, y, w, h);
   });
-
-  // Draw and move cats
-  cats.forEach(cat => {
-    ctx.drawImage(cat.img, cat.x, cat.y, cat.size, cat.size);
-    cat.y -= 5; // move upward
-  });
-
-  // Remove offscreen or hit cats
-  cats = cats.filter(cat => !cat.hit && cat.y > -cat.size);
 
   requestAnimationFrame(detectFaces);
 }
 
-// Shoot a cat
-function shootCat() {
-  const img = new Image();
-  img.src = "https://cdn-icons-png.flaticon.com/512/616/616408.png"; 
+// ✅ Shoot action
+document.getElementById("shootBtn").addEventListener("click", async () => {
+  if (lives <= 0) {
+    alert("Game Over! Final Score: " + score);
+    return;
+  }
 
-  cats.push({
-    img: img,
-    x: canvas.width / 2 - 40,
-    y: canvas.height - 100,
-    size: 80,
-    hit: false,
-  });
-}
+  lives--;
+  livesDisplay.textContent = lives;
 
+  // Check if face is detected when shooting
+  const predictions = await model.estimateFaces(video, false);
+  if (predictions.length > 0) {
+    score++;
+    scoreDisplay.textContent = score;
+    alert("Hit! 🐱");
+  } else {
+    alert("Miss!");
+  }
+});
+
+// Start game
 startCamera();
-loadModel();
-
+loadModel().then(() => detectFaces());
