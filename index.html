@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cat Attack</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background: #f2f2f2;
+    }
+    header {
+      background: #ff6f61;
+      color: white;
+      padding: 20px;
+      font-size: 2rem;
+    }
+    video {
+      margin-top: 20px;
+      width: 90%;
+      max-width: 500px;
+      border: 5px solid #333;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>Cat Attack</header>
+  <video id="camera" autoplay playsinline></video>
+
+  <script>
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoElement = document.getElementById("camera");
+        videoElement.srcObject = stream;
+      } catch (error) {
+        console.error("Error accessing camera:", error);
+        alert("Camera access is required to play Cat Attack!");
+      }
+    }
+
+    startCamera();
+  </script>
+</body>
+</html>
