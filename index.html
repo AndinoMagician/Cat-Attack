@@ -13,17 +13,17 @@
 
   <main>
     <video id="camera" autoplay playsinline></video>
-    <button id="shootBtn">Shoot Cat 🐱</button>
     <div id="hud">
-    <div id="message"></div>
-      <p>Lives: <span id="lives">9</span></p>
+      <div id="message"></div>
+      <p>⏱ Time: <span id="timer">30</span>s</p>
       <p>Score: <span id="score">0</span></p>
     </div>
     <canvas id="overlay"></canvas>
   </main>
 
   <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
   <script defer src="script.js"></script>
 </body>
 </html>
