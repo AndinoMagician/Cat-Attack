@@ -15,6 +15,8 @@ let cooldown = 2000; // ms between shots
 let lastShotTime = 0;
 let timerInterval;
 let detectionLoopRunning = false;
+const catImg = new Image();
+catImg.src = "images/Cat.png";
 
 // ✅ Initialize camera
 async function startCamera() {
@@ -139,8 +141,15 @@ function updateProjectiles() {
     p.x = (1 - p.progress) * (overlay.width / 2) + p.progress * p.targetX;
     p.y = (1 - p.progress) * overlay.height + p.progress * p.targetY;
 
-    ctx.fillStyle = "orange";
-    ctx.fillRect(p.x - 10, p.y - 10, 20, 20);
+    const size = 40;
+
+    if (catImg.complete) {
+      ctx.drawImage(catImg, p.x - size / 2, p.y - size / 2, size, size);
+    } else {
+      // fallback if image not loaded yet
+      ctx.fillStyle = "orange";
+      ctx.fillRect(p.x - 10, p.y - 10, 20, 20);
+    }
 
     if (p.progress >= 1) {
       projectiles.splice(i, 1);

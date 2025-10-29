@@ -56,17 +56,28 @@ canvas {
 }
 
 button {
-  padding: 10px 20px;
-  font-size: 1rem;
-  border: none;
-  border-radius: 8px;
-  background: #ff9800;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffcc80 0%, #ff9800 70%);
   color: white;
+  font-size: 1.5rem;
+  border: none;
   cursor: pointer;
-  margin-top: 10px;
-  transition: 0.2s;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, background 0.2s;
+  z-index: 15;
 }
 
 button:hover {
-  background: #f57c00;
+  transform: translate(-50%, -50%) scale(1.1);
+  background: radial-gradient(circle, #ffd180 0%, #f57c00 70%);
+}
+
+button:active {
+  transform: translate(-50%, -50%) scale(0.95);
 }
