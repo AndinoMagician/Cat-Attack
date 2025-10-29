@@ -1,20 +1,25 @@
-let video = document.getElementById("camera");
-let scoreDisplay = document.getElementById("score");
-let timerDisplay = document.getElementById("timer");
-let overlay = document.getElementById("overlay");
-let ctx = overlay.getContext("2d");
+const video = document.getElementById("camera");
+const overlay = document.getElementById("overlay");
+const ctx = overlay.getContext("2d");
+const scoreDisplay = document.getElementById("score");
+const timerDisplay = document.getElementById("timer");
+const message = document.getElementById("message");
+const startBtn = document.getElementById("startBtn");
 
 let detector;
-let score = 0;
-let projectiles = [];
 let gameRunning = false;
-let personCooldown = 1500; // milliseconds between shots per person
-let personTrack = []; // stores last seen positions + cooldown
+let projectiles = [];
+let score = 0;
+let countdownActive = false;
+let cooldown = 2000; // ms between shots
+let lastShotTime = 0;
+let timerInterval;
+let detectionLoopRunning = false;
 
-// ✅ Start camera
+// ✅ Initialize camera
 async function startCamera() {
   try {
-    let stream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
       audio: false
     });
@@ -24,82 +29,94 @@ async function startCamera() {
   }
 }
 
-// ✅ Load MoveNet model
+// ✅ Load BlazePose for better accuracy
 async function loadModel() {
-  detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet);
-  console.log("MoveNet loaded");
+  detector = await poseDetection.createDetector(
+    poseDetection.SupportedModels.BlazePose,
+    { runtime: "tfjs" }
+  );
+  console.log("BlazePose loaded");
+}
+
+// ✅ Countdown before starting
+async function startCountdown() {
+  if (countdownActive) return;
+  countdownActive = true;
+  let count = 3;
+
+  const showCount = () => {
+    if (count > 0) {
+      showMessage(count);
+      count--;
+      setTimeout(showCount, 1000);
+    } else {
+      showMessage("GO!");
+      setTimeout(() => {
+        message.style.display = "none";
+        countdownActive = false;
+        startGame();
+      }, 800);
+    }
+  };
+
+  showCount();
 }
 
 // ✅ Timer
 function startTimer() {
   let timeLeft = 30;
   timerDisplay.textContent = timeLeft;
-  const interval = setInterval(() => {
+
+  timerInterval = setInterval(() => {
     timeLeft--;
     timerDisplay.textContent = timeLeft;
     if (timeLeft <= 0) {
-      clearInterval(interval);
+      clearInterval(timerInterval);
       endGame();
     }
   }, 1000);
 }
 
-// ✅ Find or create person track (rough matching)
-function getPersonTrack(x, y) {
-  let now = Date.now();
-  // Look for existing person within ~100px radius
-  for (let t of personTrack) {
-    let dx = t.x - x;
-    let dy = t.y - y;
-    let dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 100) {
-      t.x = x;
-      t.y = y;
-      return t;
-    }
-  }
-  // If not found, add a new track
-  let newTrack = { x, y, lastShot: 0 };
-  personTrack.push(newTrack);
-  return newTrack;
-}
-
 // ✅ Main detection + shooting loop
 async function detectLoop() {
-  if (!gameRunning) return;
+  if (!gameRunning || detectionLoopRunning) return;
+  detectionLoopRunning = true;
+
+  overlay.width = video.videoWidth;
+  overlay.height = video.videoHeight;
 
   const poses = await detector.estimatePoses(video);
 
   ctx.clearRect(0, 0, overlay.width, overlay.height);
-  overlay.width = video.videoWidth;
-  overlay.height = video.videoHeight;
 
   if (poses.length > 0) {
-    for (let pose of poses) {
-      let keypoints = pose.keypoints.filter(k => k.score > 0.5);
-      if (keypoints.length === 0) continue;
+    // Sort by pose score to pick the most confident one
+    poses.sort((a, b) => (b.score || 0) - (a.score || 0));
+    const bestPose = poses[0];
+    const keypoints = bestPose.keypoints.filter(k => k.score > 0.5);
 
-      // Approximate center of the body
-      let centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
-      let centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
+    if (keypoints.length > 0) {
+      const centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
+      const centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
 
-      // Draw box on detected person
+      // Draw detection box
       ctx.strokeStyle = "red";
       ctx.lineWidth = 3;
       ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
 
-      // Manage shooting cooldown per tracked person
-      let track = getPersonTrack(centerX, centerY);
-      let now = Date.now();
-      if (now - track.lastShot > personCooldown) {
+      // Shoot only if enough time has passed
+      const now = Date.now();
+      if (now - lastShotTime > cooldown) {
         shootCat(centerX, centerY);
-        track.lastShot = now;
+        lastShotTime = now;
       }
     }
   }
 
   updateProjectiles();
-  requestAnimationFrame(detectLoop);
+
+  detectionLoopRunning = false;
+  if (gameRunning) requestAnimationFrame(detectLoop);
 }
 
 // ✅ Shoot cat
@@ -113,10 +130,10 @@ function shootCat(targetX, targetY) {
   });
 }
 
-// ✅ Update cats
+// ✅ Update projectiles
 function updateProjectiles() {
-  for (let i = 0; i < projectiles.length; i++) {
-    let p = projectiles[i];
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
     p.progress += 0.05;
 
     p.x = (1 - p.progress) * (overlay.width / 2) + p.progress * p.targetX;
@@ -127,7 +144,6 @@ function updateProjectiles() {
 
     if (p.progress >= 1) {
       projectiles.splice(i, 1);
-      i--;
       score++;
       scoreDisplay.textContent = score;
       showMessage("Hit! 🐱");
@@ -135,33 +151,31 @@ function updateProjectiles() {
   }
 }
 
-// ✅ Show popup text
+// ✅ Messages
 function showMessage(text) {
-  const msg = document.getElementById("message");
-  msg.textContent = text;
-  msg.style.display = "block";
-  setTimeout(() => (msg.style.display = "none"), 800);
+  message.textContent = text;
+  message.style.display = "block";
+  setTimeout(() => (message.style.display = "none"), 800);
 }
 
-// ✅ Start & end game
+// ✅ Start / End game
 function startGame() {
   score = 0;
   scoreDisplay.textContent = score;
-  personTrack = [];
   projectiles = [];
   gameRunning = true;
+  startBtn.style.display = "none";
   startTimer();
   detectLoop();
 }
 
 function endGame() {
   gameRunning = false;
+  startBtn.style.display = "block";
   showMessage("Game Over! Final Score: " + score);
 }
 
 // ✅ Init
 startCamera();
-loadModel().then(() => {
-  showMessage("Ready! Starting in 3...");
-  setTimeout(startGame, 3000);
-});
+loadModel();
+startBtn.addEventListener("click", startCountdown);

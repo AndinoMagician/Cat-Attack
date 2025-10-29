@@ -8,17 +8,19 @@
 </head>
 <body>
   <header>
-    <h1>Cat Attack</h1>
+    <h1>Cat Attack 🐱</h1>
   </header>
 
   <main>
     <video id="camera" autoplay playsinline></video>
+    <canvas id="overlay"></canvas>
+
     <div id="hud">
       <div id="message"></div>
       <p>⏱ Time: <span id="timer">30</span>s</p>
       <p>Score: <span id="score">0</span></p>
+      <button id="startBtn">Start Game</button>
     </div>
-    <canvas id="overlay"></canvas>
   </main>
 
   <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>

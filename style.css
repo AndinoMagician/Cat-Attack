@@ -16,6 +16,7 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
 }
 
 video {
@@ -24,6 +25,20 @@ video {
   border: 2px solid #333;
   border-radius: 10px;
   margin-top: 1rem;
+}
+
+canvas {
+  position: absolute;
+  top: 100px;
+  left: 0;
+  right: 0;
+  margin: auto;
+  pointer-events: none;
+}
+
+#hud {
+  margin-top: 1rem;
+  font-size: 1.2rem;
 }
 
 #message {
@@ -40,15 +55,18 @@ video {
   z-index: 10;
 }
 
-#hud {
-  font-size: 1.2rem;
+button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #ff9800;
+  color: white;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: 0.2s;
 }
 
-canvas {
-  position: absolute;
-  top: 100px;
-  left: 0;
-  right: 0;
-  margin: auto;
-  pointer-events: none;
+button:hover {
+  background: #f57c00;
 }
