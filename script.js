@@ -44,24 +44,45 @@ async function loadModel() {
 async function startCountdown() {
   if (countdownActive) return;
   countdownActive = true;
-  let count = 3;
 
-  const showCount = () => {
+  let count = 3;
+  startBtn.disabled = true; // prevent double-taps
+  startBtn.style.transition = "transform 0.3s ease, opacity 0.5s ease";
+  startBtn.textContent = count;
+
+  const doCountdown = () => {
     if (count > 0) {
-      showMessage(count);
-      count--;
-      setTimeout(showCount, 1000);
-    } else {
-      showMessage("GO!");
+      // Text update
+      startBtn.textContent = count;
+      // Pop animation
+      startBtn.style.transform = "translate(-50%, -50%) scale(1.3)";
       setTimeout(() => {
-        message.style.display = "none";
+        startBtn.style.transform = "translate(-50%, -50%) scale(1)";
+      }, 200);
+
+      count--;
+      setTimeout(doCountdown, 1000);
+    } else {
+      startBtn.textContent = "CAT!";
+      startBtn.style.transform = "translate(-50%, -50%) scale(1.4)";
+
+      setTimeout(() => {
+        startBtn.style.opacity = "0";
+        startBtn.style.transform = "translate(-50%, -50%) scale(0.5)";
+      }, 500);
+
+      setTimeout(() => {
+        startBtn.style.display = "none";
         countdownActive = false;
+        startBtn.textContent = "Start"; // reset for next game
+        startBtn.style.opacity = "1";
+        startBtn.style.transform = "translate(-50%, -50%) scale(1)";
         startGame();
-      }, 800);
+      }, 1200);
     }
   };
 
-  showCount();
+  doCountdown();
 }
 
 // ✅ Timer
