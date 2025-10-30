@@ -31,13 +31,21 @@ async function startCamera() {
   }
 }
 
+video.addEventListener('loadeddata', () => {
+  console.log("🎥 Camera ready:", video.videoWidth, video.videoHeight);
+  detectLoop();
+});
+
 // ✅ Load BlazePose for better accuracy
 async function loadModel() {
-  detector = await poseDetection.createDetector(
-    poseDetection.SupportedModels.BlazePose,
-    { runtime: "tfjs" }
-  );
-  console.log("BlazePose loaded");
+  const model = poseDetection.SupportedModels.BlazePose;
+  const detectorConfig = {
+    runtime: 'tfjs',
+    modelType: 'full', // 'lite' or 'full' - full gives better accuracy
+    enableSmoothing: true,
+  };
+  detector = await poseDetection.createDetector(model, detectorConfig);
+  console.log("✅ BlazePose loaded");
 }
 
 // ✅ Countdown before starting
@@ -134,6 +142,12 @@ async function detectLoop() {
         lastShotTime = now;
       }
     }
+    if (poses.length === 0) {
+    console.log("No poses detected");
+    } 
+    else {
+      console.log("Detected", poses.length, "pose(s)");
+    }
   }
 
   updateProjectiles();
@@ -196,7 +210,6 @@ function startGame() {
   gameRunning = true;
   startBtn.style.display = "none";
   startTimer();
-  detectLoop();
 }
 
 function endGame() {
