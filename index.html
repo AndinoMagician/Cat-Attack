@@ -1,38 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cat Attack</title>
+  <title>Cat Attack 🐱</title>
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Prevent caching during development -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
 </head>
+
 <body>
   <header>
     <h1>Cat Attack 🐱</h1>
   </header>
 
   <main>
+    <!-- Video feed -->
     <video id="camera" autoplay playsinline></video>
+
+    <!-- Overlay for drawing -->
     <canvas id="overlay"></canvas>
 
+    <!-- HUD (score, timer, buttons, etc.) -->
     <div id="hud">
       <div id="message"></div>
       <p>⏱ Time: <span id="timer">30</span>s</p>
       <p>Score: <span id="score">0</span></p>
       <button id="startBtn">Start Game</button>
+
+      <!-- End screen (score + restart) -->
       <div id="endScreen" style="display:none;"></div>
     </div>
   </main>
 
-  <!-- TensorFlow.js -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <!-- ===================== -->
+  <!-- TensorFlow.js & Models -->
+  <!-- ===================== -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
 
-<!-- TFJS Pose Detection -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
-
-<!-- Optional but recommended: BlazePose backend -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
-
-<script defer src="script.js"></script>
+  <!-- ===================== -->
+  <!-- Game Script -->
+  <!-- ===================== -->
+  <script defer src="script.js"></script>
 </body>
 </html>

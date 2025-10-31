@@ -68,7 +68,7 @@ async function startCountdown() {
       count--;
       setTimeout(doCountdown, 1000);
     } else {
-      startBtn.textContent = "Go!";
+      startBtn.textContent = "Attack!";
       startBtn.style.transform = "translate(-50%, -50%) scale(1.4)";
 
       setTimeout(() => {
@@ -104,7 +104,7 @@ function startTimer() {
   }, 1000);
 }
 
-// ✅ DETECTION LOOP (the older working style)
+// ✅ DETECTION LOOP (fixed and stable)
 async function detectLoop() {
   if (!detector) return requestAnimationFrame(detectLoop);
 
@@ -115,15 +115,17 @@ async function detectLoop() {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
 
   if (poses.length > 0) {
-   const upperBodyNames = ["nose", "left_eye", "right_eye", "left_shoulder", "right_shoulder"];
-  const keypoints = bestPose.keypoints.filter(k => k.score > 0.5 && upperBodyNames.includes(k.name));
-  if (keypoints.length > 0) {
-  const centerX = keypoints.reduce((a,b) => a + b.x, 0) / keypoints.length;
-  const centerY = keypoints.reduce((a,b) => a + b.y, 0) / keypoints.length;
-  // optional: if bounding box of shoulders is too small => ignore
-  }
+    const bestPose = poses[0];
 
-      // draw box for debugging
+    // Focus on keypoints around the head/shoulders for stable targeting
+    const upperBodyNames = ["nose", "left_eye", "right_eye", "left_shoulder", "right_shoulder"];
+    const keypoints = bestPose.keypoints.filter(k => k.score > 0.5 && upperBodyNames.includes(k.name));
+
+    if (keypoints.length > 0) {
+      const centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
+      const centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
+
+      // Draw target box (optional for debugging)
       ctx.strokeStyle = "red";
       ctx.lineWidth = 3;
       ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
@@ -131,13 +133,15 @@ async function detectLoop() {
       if (gameRunning) {
         const now = Date.now();
         if (now - lastShotTime > cooldown) {
-          shootCat(centerX, centerY);
+          shootCat(centerX, centerY - 100); // offset upward toward the face
           lastShotTime = now;
         }
       }
     }
-    updateProjectiles();
-    requestAnimationFrame(detectLoop);
+  }
+
+  updateProjectiles();
+  requestAnimationFrame(detectLoop);
 }
 
 
@@ -202,20 +206,25 @@ function startGame() {
 }
 
 function endGame() {
-   gameRunning = false;
+  gameRunning = false;
   clearInterval(timerInterval);
 
   const endScreen = document.getElementById("endScreen");
   endScreen.innerHTML = `
     <div style="
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
       background: rgba(0,0,0,0.7);
       color: white;
-      padding: 20px;
+      padding: 30px;
       border-radius: 20px;
       font-size: 1.8rem;
       text-align: center;
     ">
-      Final Score: ${score}<br><br>
+      <div id="finalScore">Final Score: ${score}</div>
       <button id="restartBtn" style="
         padding: 12px 24px;
         font-size: 20px;
