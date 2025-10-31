@@ -22,10 +22,16 @@ catImg.src = "images/Cat.png";
 async function startCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
+      video: { facingMode: "user" }, // or "environment" for back camera
       audio: false
     });
     video.srcObject = stream;
+    await new Promise(resolve => {
+      video.onloadeddata = () => {
+        console.log("🎥 Camera ready:", video.videoWidth, video.videoHeight);
+        resolve();
+      };
+    });
   } catch (err) {
     console.error("Camera error:", err);
   }
@@ -71,7 +77,7 @@ async function startCountdown() {
       count--;
       setTimeout(doCountdown, 1000);
     } else {
-      startBtn.textContent = "CAT!";
+      startBtn.textContent = "ATTACK!";
       startBtn.style.transform = "translate(-50%, -50%) scale(1.4)";
 
       setTimeout(() => {
@@ -214,8 +220,12 @@ function endGame() {
   startBtn.style.display = "block";
   showMessage("Game Over! Final Score: " + score);
 }
+async function init() {
+  await startCamera(); // wait for camera
+  await loadModel();   // wait for BlazePose to load
+  detectLoop();        // now start detection safely
+}
 
 // ✅ Init
-startCamera();
-loadModel();
+init();
 startBtn.addEventListener("click", startCountdown);
