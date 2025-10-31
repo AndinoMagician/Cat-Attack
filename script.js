@@ -115,13 +115,13 @@ async function detectLoop() {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
 
   if (poses.length > 0) {
-    const keypoints = bestPose.keypoints.filter(k => k.score > 0.5);
-  const upperBodyNames = ["nose", "left_eye", "right_eye", "left_shoulder", "right_shoulder"];
-  const upperBody = keypoints.filter(k => upperBodyNames.includes(k.name));
-
-if (upperBody.length > 0) {
-  const centerX = upperBody.reduce((a, b) => a + b.x, 0) / upperBody.length;
-  const centerY = upperBody.reduce((a, b) => a + b.y, 0) / upperBody.length;
+   const upperBodyNames = ["nose", "left_eye", "right_eye", "left_shoulder", "right_shoulder"];
+  const keypoints = bestPose.keypoints.filter(k => k.score > 0.5 && upperBodyNames.includes(k.name));
+  if (keypoints.length > 0) {
+  const centerX = keypoints.reduce((a,b) => a + b.x, 0) / keypoints.length;
+  const centerY = keypoints.reduce((a,b) => a + b.y, 0) / keypoints.length;
+  // optional: if bounding box of shoulders is too small => ignore
+  }
 
       // draw box for debugging
       ctx.strokeStyle = "red";
@@ -136,11 +136,11 @@ if (upperBody.length > 0) {
         }
       }
     }
-  }
-
-  updateProjectiles();
-  requestAnimationFrame(detectLoop);
+    updateProjectiles();
+    requestAnimationFrame(detectLoop);
 }
+
+
 
 // ✅ SHOOT CAT
 function shootCat(targetX, targetY) {
@@ -202,7 +202,7 @@ function startGame() {
 }
 
 function endGame() {
-  gameRunning = false;
+   gameRunning = false;
   clearInterval(timerInterval);
 
   const endScreen = document.getElementById("endScreen");
@@ -213,10 +213,10 @@ function endGame() {
       padding: 20px;
       border-radius: 20px;
       font-size: 1.8rem;
+      text-align: center;
     ">
-      Game Over!<br>Final Score: ${score}<br>
+      Final Score: ${score}<br><br>
       <button id="restartBtn" style="
-        margin-top: 15px;
         padding: 12px 24px;
         font-size: 20px;
         border: none;
@@ -224,7 +224,6 @@ function endGame() {
         background: #ffcc00;
         color: #333;
         cursor: pointer;
-        font-weight: bold;
       ">Restart</button>
     </div>
   `;
