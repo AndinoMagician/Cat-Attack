@@ -21,9 +21,10 @@ catImg.src = "images/Cat.png";
 async function startCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user" }, // "environment" for rear camera
-      audio: false
-    });
+  video: { facingMode: "environment" },
+  audio: false
+});
+
     video.srcObject = stream;
     await new Promise(resolve => {
       video.onloadeddata = () => {
@@ -67,7 +68,7 @@ async function startCountdown() {
       count--;
       setTimeout(doCountdown, 1000);
     } else {
-      startBtn.textContent = "CAT!";
+      startBtn.textContent = "ATTACK!";
       startBtn.style.transform = "translate(-50%, -50%) scale(1.4)";
 
       setTimeout(() => {
@@ -159,7 +160,7 @@ function updateProjectiles() {
     p.x = (1 - p.progress) * (overlay.width / 2) + p.progress * p.targetX;
     p.y = (1 - p.progress) * overlay.height + p.progress * p.targetY;
 
-    const size = 40;
+    const size = 80;
     if (catImg.complete) {
       ctx.drawImage(catImg, p.x - size / 2, p.y - size / 2, size, size);
     } else {
@@ -195,8 +196,31 @@ function startGame() {
 
 function endGame() {
   gameRunning = false;
-  startBtn.style.display = "block";
-  showMessage("Game Over! Final Score: " + score);
+  clearInterval(timerInterval);
+
+  // Show a big "Final Score" button
+  message.innerHTML = `Final Score: ${score}<br><button id="restartBtn" style="
+    margin-top: 12px;
+    padding: 10px 20px;
+    font-size: 20px;
+    border: none;
+    border-radius: 20px;
+    background: #ffcc00;
+    color: #333;
+    cursor: pointer;
+  ">Restart</button>`;
+  message.style.display = "block";
+
+  // Add click listener for restart
+  const restartBtn = document.getElementById("restartBtn");
+  restartBtn.addEventListener("click", () => {
+    message.style.display = "none";
+    score = 0;
+    scoreDisplay.textContent = score;
+    projectiles = [];
+    startBtn.style.display = "block"; // show start again
+    startBtn.disabled = false;
+  });
 }
 
 // ✅ INIT (proper load order)
