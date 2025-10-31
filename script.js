@@ -110,18 +110,16 @@ function startTimer() {
 
 // ✅ Main detection + shooting loop
 async function detectLoop() {
-  if (!gameRunning || detectionLoopRunning) return;
+  if (detectionLoopRunning) return;
   detectionLoopRunning = true;
 
   overlay.width = video.videoWidth;
   overlay.height = video.videoHeight;
 
-  const poses = await detector.estimatePoses(video);
-
+  const poses = detector ? await detector.estimatePoses(video) : [];
   ctx.clearRect(0, 0, overlay.width, overlay.height);
 
   if (poses.length > 0) {
-    // Sort by pose score to pick the most confident one
     poses.sort((a, b) => (b.score || 0) - (a.score || 0));
     const bestPose = poses[0];
     const keypoints = bestPose.keypoints.filter(k => k.score > 0.5);
@@ -135,25 +133,24 @@ async function detectLoop() {
       ctx.lineWidth = 3;
       ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
 
-      // Shoot only if enough time has passed
-      const now = Date.now();
-      if (now - lastShotTime > cooldown) {
-        shootCat(centerX, centerY);
-        lastShotTime = now;
+      // ✅ Only shoot if the game is active
+      if (gameRunning) {
+        const now = Date.now();
+        if (now - lastShotTime > cooldown) {
+          shootCat(centerX, centerY);
+          lastShotTime = now;
+        }
       }
     }
-    if (poses.length === 0) {
-    console.log("No poses detected");
-    } 
-    else {
-      console.log("Detected", poses.length, "pose(s)");
-    }
   }
+
+  if (poses.length === 0) console.log("No poses detected");
+  else console.log("Detected", poses.length, "pose(s)");
 
   updateProjectiles();
 
   detectionLoopRunning = false;
-  if (gameRunning) requestAnimationFrame(detectLoop);
+  requestAnimationFrame(detectLoop); // ✅ Always loops now
 }
 
 // ✅ Shoot cat
