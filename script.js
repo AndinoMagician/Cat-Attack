@@ -68,7 +68,7 @@ async function startCountdown() {
       count--;
       setTimeout(doCountdown, 1000);
     } else {
-      startBtn.textContent = "ATTACK YEAH!";
+      startBtn.textContent = "Go!";
       startBtn.style.transform = "translate(-50%, -50%) scale(1.4)";
 
       setTimeout(() => {
