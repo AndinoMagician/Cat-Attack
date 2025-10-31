@@ -14,15 +14,14 @@ let countdownActive = false;
 let cooldown = 2000; // ms between shots
 let lastShotTime = 0;
 let timerInterval;
-let detectionLoopRunning = false;
 const catImg = new Image();
 catImg.src = "images/Cat.png";
 
-// ✅ Initialize camera
+// ✅ CAMERA
 async function startCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user" }, // or "environment" for back camera
+      video: { facingMode: "user" }, // "environment" for rear camera
       audio: false
     });
     video.srcObject = stream;
@@ -37,38 +36,29 @@ async function startCamera() {
   }
 }
 
-video.addEventListener('loadeddata', () => {
-  console.log("🎥 Camera ready:", video.videoWidth, video.videoHeight);
-  detectLoop();
-});
-
-// ✅ Load BlazePose for better accuracy
+// ✅ WORKING MODEL (MoveNet)
 async function loadModel() {
-  const model = poseDetection.SupportedModels.BlazePose;
+  const model = poseDetection.SupportedModels.MoveNet;
   const detectorConfig = {
-    runtime: 'tfjs',
-    modelType: 'full', // 'lite' or 'full' - full gives better accuracy
-    enableSmoothing: true,
+    modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
   };
   detector = await poseDetection.createDetector(model, detectorConfig);
-  console.log("✅ BlazePose loaded");
+  console.log("✅ MoveNet loaded");
 }
 
-// ✅ Countdown before starting
+// ✅ COUNTDOWN
 async function startCountdown() {
   if (countdownActive) return;
   countdownActive = true;
 
   let count = 3;
-  startBtn.disabled = true; // prevent double-taps
+  startBtn.disabled = true;
   startBtn.style.transition = "transform 0.3s ease, opacity 0.5s ease";
   startBtn.textContent = count;
 
   const doCountdown = () => {
     if (count > 0) {
-      // Text update
       startBtn.textContent = count;
-      // Pop animation
       startBtn.style.transform = "translate(-50%, -50%) scale(1.3)";
       setTimeout(() => {
         startBtn.style.transform = "translate(-50%, -50%) scale(1)";
@@ -77,7 +67,7 @@ async function startCountdown() {
       count--;
       setTimeout(doCountdown, 1000);
     } else {
-      startBtn.textContent = "ATTACK!";
+      startBtn.textContent = "CAT!";
       startBtn.style.transform = "translate(-50%, -50%) scale(1.4)";
 
       setTimeout(() => {
@@ -88,7 +78,7 @@ async function startCountdown() {
       setTimeout(() => {
         startBtn.style.display = "none";
         countdownActive = false;
-        startBtn.textContent = "Start"; // reset for next game
+        startBtn.textContent = "Start";
         startBtn.style.opacity = "1";
         startBtn.style.transform = "translate(-50%, -50%) scale(1)";
         startGame();
@@ -99,11 +89,10 @@ async function startCountdown() {
   doCountdown();
 }
 
-// ✅ Timer
+// ✅ TIMER
 function startTimer() {
   let timeLeft = 30;
   timerDisplay.textContent = timeLeft;
-
   timerInterval = setInterval(() => {
     timeLeft--;
     timerDisplay.textContent = timeLeft;
@@ -114,32 +103,28 @@ function startTimer() {
   }, 1000);
 }
 
-// ✅ Main detection + shooting loop
+// ✅ DETECTION LOOP (the older working style)
 async function detectLoop() {
-  if (detectionLoopRunning) return;
-  detectionLoopRunning = true;
+  if (!detector) return requestAnimationFrame(detectLoop);
 
   overlay.width = video.videoWidth;
   overlay.height = video.videoHeight;
 
-  const poses = detector ? await detector.estimatePoses(video) : [];
+  const poses = await detector.estimatePoses(video);
   ctx.clearRect(0, 0, overlay.width, overlay.height);
 
   if (poses.length > 0) {
-    poses.sort((a, b) => (b.score || 0) - (a.score || 0));
-    const bestPose = poses[0];
-    const keypoints = bestPose.keypoints.filter(k => k.score > 0.5);
+    const keypoints = poses[0].keypoints.filter(k => k.score > 0.5);
 
     if (keypoints.length > 0) {
       const centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
       const centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
 
-      // Draw detection box
+      // draw box for debugging
       ctx.strokeStyle = "red";
       ctx.lineWidth = 3;
       ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
 
-      // ✅ Only shoot if the game is active
       if (gameRunning) {
         const now = Date.now();
         if (now - lastShotTime > cooldown) {
@@ -150,16 +135,11 @@ async function detectLoop() {
     }
   }
 
-  if (poses.length === 0) console.log("No poses detected");
-  else console.log("Detected", poses.length, "pose(s)");
-
   updateProjectiles();
-
-  detectionLoopRunning = false;
-  requestAnimationFrame(detectLoop); // ✅ Always loops now
+  requestAnimationFrame(detectLoop);
 }
 
-// ✅ Shoot cat
+// ✅ SHOOT CAT
 function shootCat(targetX, targetY) {
   projectiles.push({
     x: overlay.width / 2,
@@ -170,7 +150,7 @@ function shootCat(targetX, targetY) {
   });
 }
 
-// ✅ Update projectiles
+// ✅ UPDATE PROJECTILES
 function updateProjectiles() {
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
@@ -180,11 +160,9 @@ function updateProjectiles() {
     p.y = (1 - p.progress) * overlay.height + p.progress * p.targetY;
 
     const size = 40;
-
     if (catImg.complete) {
       ctx.drawImage(catImg, p.x - size / 2, p.y - size / 2, size, size);
     } else {
-      // fallback if image not loaded yet
       ctx.fillStyle = "orange";
       ctx.fillRect(p.x - 10, p.y - 10, 20, 20);
     }
@@ -198,14 +176,14 @@ function updateProjectiles() {
   }
 }
 
-// ✅ Messages
+// ✅ MESSAGES
 function showMessage(text) {
   message.textContent = text;
   message.style.display = "block";
   setTimeout(() => (message.style.display = "none"), 800);
 }
 
-// ✅ Start / End game
+// ✅ START / END GAME
 function startGame() {
   score = 0;
   scoreDisplay.textContent = score;
@@ -220,12 +198,13 @@ function endGame() {
   startBtn.style.display = "block";
   showMessage("Game Over! Final Score: " + score);
 }
+
+// ✅ INIT (proper load order)
 async function init() {
-  await startCamera(); // wait for camera
-  await loadModel();   // wait for BlazePose to load
-  detectLoop();        // now start detection safely
+  await startCamera();
+  await loadModel();
+  detectLoop();
 }
 
-// ✅ Init
 init();
 startBtn.addEventListener("click", startCountdown);
