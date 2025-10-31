@@ -68,7 +68,7 @@ async function startCountdown() {
       count--;
       setTimeout(doCountdown, 1000);
     } else {
-      startBtn.textContent = "ATTACK!";
+      startBtn.textContent = "ATTACK YEAH!";
       startBtn.style.transform = "translate(-50%, -50%) scale(1.4)";
 
       setTimeout(() => {
@@ -115,11 +115,13 @@ async function detectLoop() {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
 
   if (poses.length > 0) {
-    const keypoints = poses[0].keypoints.filter(k => k.score > 0.5);
+    const keypoints = bestPose.keypoints.filter(k => k.score > 0.5);
+  const upperBodyNames = ["nose", "left_eye", "right_eye", "left_shoulder", "right_shoulder"];
+  const upperBody = keypoints.filter(k => upperBodyNames.includes(k.name));
 
-    if (keypoints.length > 0) {
-      const centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
-      const centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
+if (upperBody.length > 0) {
+  const centerX = upperBody.reduce((a, b) => a + b.x, 0) / upperBody.length;
+  const centerY = upperBody.reduce((a, b) => a + b.y, 0) / upperBody.length;
 
       // draw box for debugging
       ctx.strokeStyle = "red";
@@ -168,12 +170,17 @@ function updateProjectiles() {
       ctx.fillRect(p.x - 10, p.y - 10, 20, 20);
     }
 
-    if (p.progress >= 1) {
-      projectiles.splice(i, 1);
-      score++;
-      scoreDisplay.textContent = score;
-      showMessage("Hit! 🐱");
-    }
+    if (p.progress >= 1 && !p.hitTime) {
+    p.hitTime = Date.now(); // mark the time we hit
+    score++;
+    scoreDisplay.textContent = score;
+    showMessage("Hit! 🐱");
+} 
+
+// stay visible for 1s after hit
+if (p.hitTime && Date.now() - p.hitTime > 1000) {
+  projectiles.splice(i, 1);
+}
   }
 }
 
@@ -198,30 +205,51 @@ function endGame() {
   gameRunning = false;
   clearInterval(timerInterval);
 
-  // Show a big "Final Score" button
-  message.innerHTML = `Final Score: ${score}<br><button id="restartBtn" style="
-    margin-top: 12px;
-    padding: 10px 20px;
-    font-size: 20px;
-    border: none;
-    border-radius: 20px;
-    background: #ffcc00;
-    color: #333;
-    cursor: pointer;
-  ">Restart</button>`;
-  message.style.display = "block";
+  const endScreen = document.getElementById("endScreen");
+  endScreen.innerHTML = `
+    <div style="
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 20px;
+      border-radius: 20px;
+      font-size: 1.8rem;
+    ">
+      Game Over!<br>Final Score: ${score}<br>
+      <button id="restartBtn" style="
+        margin-top: 15px;
+        padding: 12px 24px;
+        font-size: 20px;
+        border: none;
+        border-radius: 25px;
+        background: #ffcc00;
+        color: #333;
+        cursor: pointer;
+        font-weight: bold;
+      ">Restart</button>
+    </div>
+  `;
+  endScreen.style.display = "flex";
+  endScreen.style.flexDirection = "column";
+  endScreen.style.alignItems = "center";
+  endScreen.style.justifyContent = "center";
+  endScreen.style.position = "absolute";
+  endScreen.style.top = "0";
+  endScreen.style.left = "0";
+  endScreen.style.width = "100%";
+  endScreen.style.height = "100%";
+  endScreen.style.zIndex = "20";
 
-  // Add click listener for restart
   const restartBtn = document.getElementById("restartBtn");
   restartBtn.addEventListener("click", () => {
-    message.style.display = "none";
+    endScreen.style.display = "none";
     score = 0;
     scoreDisplay.textContent = score;
     projectiles = [];
-    startBtn.style.display = "block"; // show start again
+    startBtn.style.display = "block";
     startBtn.disabled = false;
   });
 }
+
 
 // ✅ INIT (proper load order)
 async function init() {
