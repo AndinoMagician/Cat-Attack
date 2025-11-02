@@ -206,6 +206,12 @@ function endGame() {
   gameRunning = false;
   clearInterval(timerInterval);
 
+  // Show final score in HUD (not in overlay)
+  const finalScoreText = document.getElementById("finalScoreText");
+  const finalScoreValue = document.getElementById("finalScoreValue");
+  finalScoreValue.textContent = score;
+  finalScoreText.style.display = "block";
+
   const endScreen = document.getElementById("endScreen");
   endScreen.innerHTML = `
     <div style="
@@ -213,17 +219,14 @@ function endGame() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 40px;
+      gap: 20px;
       background: rgba(0,0,0,0.7);
       color: white;
-      padding: 40px;
+      padding: 30px;
       border-radius: 20px;
       font-size: 1.8rem;
       text-align: center;
     ">
-      <div id="finalScore" style="font-size: 2rem; font-weight: bold; margin-bottom: 20px;">
-        Final Score: ${score}
-      </div>
       <button id="restartBtn" style="
         padding: 12px 24px;
         font-size: 20px;
@@ -250,6 +253,7 @@ function endGame() {
   const restartBtn = document.getElementById("restartBtn");
   restartBtn.addEventListener("click", () => {
     endScreen.style.display = "none";
+    finalScoreText.style.display = "none"; // hide final score again
     score = 0;
     scoreDisplay.textContent = score;
     projectiles = [];
