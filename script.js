@@ -11,7 +11,7 @@ let gameRunning = false;
 let projectiles = [];
 let score = 0;
 let countdownActive = false;
-let cooldown = 2000; // ms between shots
+let cooldown = 2000;
 let lastShotTime = 0;
 let timerInterval;
 const catImg = new Image();
@@ -21,10 +21,9 @@ catImg.src = "images/Cat.png";
 async function startCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-  video: { facingMode: "environment" },
-  audio: false
-});
-
+      video: { facingMode: "environment" },
+      audio: false
+    });
     video.srcObject = stream;
     await new Promise(resolve => {
       video.onloadeddata = () => {
@@ -37,7 +36,7 @@ async function startCamera() {
   }
 }
 
-// ✅ WORKING MODEL (MoveNet)
+// ✅ MODEL
 async function loadModel() {
   const model = poseDetection.SupportedModels.MoveNet;
   const detectorConfig = {
@@ -61,21 +60,16 @@ async function startCountdown() {
     if (count > 0) {
       startBtn.textContent = count;
       startBtn.style.transform = "translate(-50%, -50%) scale(1.3)";
-      setTimeout(() => {
-        startBtn.style.transform = "translate(-50%, -50%) scale(1)";
-      }, 200);
-
+      setTimeout(() => (startBtn.style.transform = "translate(-50%, -50%) scale(1)"), 200);
       count--;
       setTimeout(doCountdown, 1000);
     } else {
       startBtn.textContent = "Attack!";
       startBtn.style.transform = "translate(-50%, -50%) scale(1.4)";
-
       setTimeout(() => {
         startBtn.style.opacity = "0";
         startBtn.style.transform = "translate(-50%, -50%) scale(0.5)";
       }, 500);
-
       setTimeout(() => {
         startBtn.style.display = "none";
         countdownActive = false;
@@ -86,7 +80,6 @@ async function startCountdown() {
       }, 1200);
     }
   };
-
   doCountdown();
 }
 
@@ -104,7 +97,7 @@ function startTimer() {
   }, 1000);
 }
 
-// ✅ DETECTION LOOP (fixed and stable)
+// ✅ ORIGINAL WORKING DETECTION LOOP
 async function detectLoop() {
   if (!detector) return requestAnimationFrame(detectLoop);
 
@@ -116,26 +109,22 @@ async function detectLoop() {
 
   if (poses.length > 0) {
     const bestPose = poses[0];
+    const keypoints = bestPose.keypoints.filter(k => k.score > 0.5);
+    if (keypoints.length === 0) return requestAnimationFrame(detectLoop);
 
-    // Focus on keypoints around the head/shoulders for stable targeting
-    const upperBodyNames = ["nose", "left_eye", "right_eye", "left_shoulder", "right_shoulder"];
-    const keypoints = bestPose.keypoints.filter(k => k.score > 0.5 && upperBodyNames.includes(k.name));
+    const centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
+    const centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
 
-    if (keypoints.length > 0) {
-      const centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
-      const centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
+    // Debug red box
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
 
-      // Draw target box (optional for debugging)
-      ctx.strokeStyle = "red";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
-
-      if (gameRunning) {
-        const now = Date.now();
-        if (now - lastShotTime > cooldown) {
-          shootCat(centerX, centerY - 100); // offset upward toward the face
-          lastShotTime = now;
-        }
+    if (gameRunning) {
+      const now = Date.now();
+      if (now - lastShotTime > cooldown) {
+        shootCat(centerX, centerY - 80); // aim slightly above center
+        lastShotTime = now;
       }
     }
   }
@@ -143,8 +132,6 @@ async function detectLoop() {
   updateProjectiles();
   requestAnimationFrame(detectLoop);
 }
-
-
 
 // ✅ SHOOT CAT
 function shootCat(targetX, targetY) {
@@ -166,7 +153,7 @@ function updateProjectiles() {
     p.x = (1 - p.progress) * (overlay.width / 2) + p.progress * p.targetX;
     p.y = (1 - p.progress) * overlay.height + p.progress * p.targetY;
 
-    const size = 80;
+    const size = 160; // double the cat size
     if (catImg.complete) {
       ctx.drawImage(catImg, p.x - size / 2, p.y - size / 2, size, size);
     } else {
@@ -175,16 +162,15 @@ function updateProjectiles() {
     }
 
     if (p.progress >= 1 && !p.hitTime) {
-    p.hitTime = Date.now(); // mark the time we hit
-    score++;
-    scoreDisplay.textContent = score;
-    showMessage("Hit! 🐱");
-} 
+      p.hitTime = Date.now();
+      score++;
+      scoreDisplay.textContent = score;
+      showMessage("Hit! 🐱");
+    }
 
-// stay visible for 1s after hit
-if (p.hitTime && Date.now() - p.hitTime > 1000) {
-  projectiles.splice(i, 1);
-}
+    if (p.hitTime && Date.now() - p.hitTime > 1000) {
+      projectiles.splice(i, 1);
+    }
   }
 }
 
@@ -236,16 +222,17 @@ function endGame() {
       ">Restart</button>
     </div>
   `;
-  endScreen.style.display = "flex";
-  endScreen.style.flexDirection = "column";
-  endScreen.style.alignItems = "center";
-  endScreen.style.justifyContent = "center";
-  endScreen.style.position = "absolute";
-  endScreen.style.top = "0";
-  endScreen.style.left = "0";
-  endScreen.style.width = "100%";
-  endScreen.style.height = "100%";
-  endScreen.style.zIndex = "20";
+  Object.assign(endScreen.style, {
+    display: "flex",
+    position: "absolute",
+    top: "0",
+    left: "0",
+    width: "100%",
+    height: "100%",
+    zIndex: "20",
+    alignItems: "center",
+    justifyContent: "center"
+  });
 
   const restartBtn = document.getElementById("restartBtn");
   restartBtn.addEventListener("click", () => {
@@ -258,8 +245,7 @@ function endGame() {
   });
 }
 
-
-// ✅ INIT (proper load order)
+// ✅ INIT
 async function init() {
   await startCamera();
   await loadModel();
