@@ -11,11 +11,14 @@ let gameRunning = false;
 let projectiles = [];
 let score = 0;
 let countdownActive = false;
-let cooldown = 2000;
+let cooldown = 2000; // ms between shots
 let lastShotTime = 0;
 let timerInterval;
 const catImg = new Image();
 catImg.src = "images/Cat.png";
+
+// ✅ Sound effect
+const catSound = new Audio("soundEffects/SFX_CatAttack.mp3");
 
 // ✅ CAMERA
 async function startCamera() {
@@ -24,6 +27,7 @@ async function startCamera() {
       video: { facingMode: "environment" },
       audio: false
     });
+
     video.srcObject = stream;
     await new Promise(resolve => {
       video.onloadeddata = () => {
@@ -36,7 +40,7 @@ async function startCamera() {
   }
 }
 
-// ✅ MODEL
+// ✅ WORKING MODEL (MoveNet)
 async function loadModel() {
   const model = poseDetection.SupportedModels.MoveNet;
   const detectorConfig = {
@@ -60,16 +64,21 @@ async function startCountdown() {
     if (count > 0) {
       startBtn.textContent = count;
       startBtn.style.transform = "translate(-50%, -50%) scale(1.3)";
-      setTimeout(() => (startBtn.style.transform = "translate(-50%, -50%) scale(1)"), 200);
+      setTimeout(() => {
+        startBtn.style.transform = "translate(-50%, -50%) scale(1)";
+      }, 200);
+
       count--;
       setTimeout(doCountdown, 1000);
     } else {
       startBtn.textContent = "Attack!";
       startBtn.style.transform = "translate(-50%, -50%) scale(1.4)";
+
       setTimeout(() => {
         startBtn.style.opacity = "0";
         startBtn.style.transform = "translate(-50%, -50%) scale(0.5)";
       }, 500);
+
       setTimeout(() => {
         startBtn.style.display = "none";
         countdownActive = false;
@@ -80,6 +89,7 @@ async function startCountdown() {
       }, 1200);
     }
   };
+
   doCountdown();
 }
 
@@ -97,34 +107,33 @@ function startTimer() {
   }, 1000);
 }
 
-// ✅ ORIGINAL WORKING DETECTION LOOP
+// ✅ DETECTION LOOP
 async function detectLoop() {
   if (!detector) return requestAnimationFrame(detectLoop);
 
+  const poses = await detector.estimatePoses(video);
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
   overlay.width = video.videoWidth;
   overlay.height = video.videoHeight;
 
-  const poses = await detector.estimatePoses(video);
-  ctx.clearRect(0, 0, overlay.width, overlay.height);
-
   if (poses.length > 0) {
-    const bestPose = poses[0];
-    const keypoints = bestPose.keypoints.filter(k => k.score > 0.5);
-    if (keypoints.length === 0) return requestAnimationFrame(detectLoop);
+    for (let pose of poses) {
+      let keypoints = pose.keypoints.filter(k => k.score > 0.5);
+      if (keypoints.length === 0) continue;
 
-    const centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
-    const centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
+      let centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
+      let centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
 
-    // Debug red box
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
 
-    if (gameRunning) {
-      const now = Date.now();
-      if (now - lastShotTime > cooldown) {
-        shootCat(centerX, centerY - 80); // aim slightly above center
-        lastShotTime = now;
+      if (gameRunning) {
+        const now = Date.now();
+        if (now - lastShotTime > cooldown) {
+          shootCat(centerX, centerY - 100);
+          lastShotTime = now;
+        }
       }
     }
   }
@@ -135,6 +144,10 @@ async function detectLoop() {
 
 // ✅ SHOOT CAT
 function shootCat(targetX, targetY) {
+  // play sound
+  catSound.currentTime = 0;
+  catSound.play().catch(err => console.warn("Audio play blocked:", err));
+
   projectiles.push({
     x: overlay.width / 2,
     y: overlay.height,
@@ -153,12 +166,9 @@ function updateProjectiles() {
     p.x = (1 - p.progress) * (overlay.width / 2) + p.progress * p.targetX;
     p.y = (1 - p.progress) * overlay.height + p.progress * p.targetY;
 
-    const size = 160; // double the cat size
+    const size = 160; 
     if (catImg.complete) {
       ctx.drawImage(catImg, p.x - size / 2, p.y - size / 2, size, size);
-    } else {
-      ctx.fillStyle = "orange";
-      ctx.fillRect(p.x - 10, p.y - 10, 20, 20);
     }
 
     if (p.progress >= 1 && !p.hitTime) {
@@ -168,6 +178,7 @@ function updateProjectiles() {
       showMessage("Hit! 🐱");
     }
 
+    // keep visible for 1s after hit
     if (p.hitTime && Date.now() - p.hitTime > 1000) {
       projectiles.splice(i, 1);
     }
@@ -202,15 +213,17 @@ function endGame() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 20px;
+      gap: 40px;
       background: rgba(0,0,0,0.7);
       color: white;
-      padding: 30px;
+      padding: 40px;
       border-radius: 20px;
       font-size: 1.8rem;
       text-align: center;
     ">
-      <div id="finalScore">Final Score: ${score}</div>
+      <div id="finalScore" style="font-size: 2rem; font-weight: bold; margin-bottom: 20px;">
+        Final Score: ${score}
+      </div>
       <button id="restartBtn" style="
         padding: 12px 24px;
         font-size: 20px;
@@ -222,17 +235,17 @@ function endGame() {
       ">Restart</button>
     </div>
   `;
-  Object.assign(endScreen.style, {
-    display: "flex",
-    position: "absolute",
-    top: "0",
-    left: "0",
-    width: "100%",
-    height: "100%",
-    zIndex: "20",
-    alignItems: "center",
-    justifyContent: "center"
-  });
+
+  endScreen.style.display = "flex";
+  endScreen.style.flexDirection = "column";
+  endScreen.style.alignItems = "center";
+  endScreen.style.justifyContent = "center";
+  endScreen.style.position = "absolute";
+  endScreen.style.top = "0";
+  endScreen.style.left = "0";
+  endScreen.style.width = "100%";
+  endScreen.style.height = "100%";
+  endScreen.style.zIndex = "20";
 
   const restartBtn = document.getElementById("restartBtn");
   restartBtn.addEventListener("click", () => {
