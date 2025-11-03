@@ -124,9 +124,9 @@ async function detectLoop() {
       let centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
       let centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
 
-      ctx.strokeStyle = "red";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
+      // ctx.strokeStyle = "red";
+      // ctx.lineWidth = 3;
+      // ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
 
       if (gameRunning) {
         const now = Date.now();
