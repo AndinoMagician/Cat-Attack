@@ -14,6 +14,9 @@ let countdownActive = false;
 let cooldown = 2000; // ms between shots
 let lastShotTime = 0;
 let timerInterval;
+let smoothX = 0;
+let smoothY = 0;
+const smoothingFactor = 0.2;
 const catImg = new Image();
 catImg.src = "images/Cat.png";
 
@@ -108,6 +111,41 @@ function startTimer() {
 }
 
 // ✅ DETECTION LOOP
+// async function detectLoop() {
+//   if (!detector) return requestAnimationFrame(detectLoop);
+
+//   const poses = await detector.estimatePoses(video);
+//   ctx.clearRect(0, 0, overlay.width, overlay.height);
+//   overlay.width = video.videoWidth;
+//   overlay.height = video.videoHeight;
+
+//   if (poses.length > 0) {
+//     for (let pose of poses) {
+//       let keypoints = pose.keypoints.filter(k => k.score > 0.5);
+//       if (keypoints.length === 0) continue;
+
+//       let centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
+//       let centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
+
+//       ctx.strokeStyle = "red";
+//       ctx.lineWidth = 3;
+//       ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
+
+//       if (gameRunning) {
+//         const now = Date.now();
+//         if (now - lastShotTime > cooldown) {
+//           shootCat(centerX, centerY - 100);
+//           lastShotTime = now;
+//         }
+//       }
+//     }
+//   }
+
+//   updateProjectiles();
+//   requestAnimationFrame(detectLoop);
+// }
+
+
 async function detectLoop() {
   if (!detector) return requestAnimationFrame(detectLoop);
 
@@ -121,17 +159,44 @@ async function detectLoop() {
       let keypoints = pose.keypoints.filter(k => k.score > 0.5);
       if (keypoints.length === 0) continue;
 
-      let centerX = keypoints.reduce((a, b) => a + b.x, 0) / keypoints.length;
-      let centerY = keypoints.reduce((a, b) => a + b.y, 0) / keypoints.length;
+      // Focus on upper body keypoints only
+      const upperBodyParts = [
+        'nose', 'left_eye', 'right_eye', 
+        'left_ear', 'right_ear', 
+        'left_shoulder', 'right_shoulder', 
+        'left_elbow', 'right_elbow'
+      ];
+      const upperBody = keypoints.filter(k => upperBodyParts.includes(k.name));
+      if (upperBody.length === 0) continue;
 
-      // ctx.strokeStyle = "red";
-      // ctx.lineWidth = 3;
-      // ctx.strokeRect(centerX - 50, centerY - 50, 100, 100);
+      let centerX = upperBody.reduce((a, b) => a + b.x, 0) / upperBody.length;
+      let centerY = upperBody.reduce((a, b) => a + b.y, 0) / upperBody.length;
+
+      // Smooth movement (exponential moving average)
+      smoothX = smoothX + (centerX - smoothX) * smoothingFactor;
+      smoothY = smoothY + (centerY - smoothY) * smoothingFactor;
+
+      // Draw rounded rectangle
+      const size = 100;
+      const radius = 15;
+      const x = smoothX - size / 2;
+      const y = smoothY - size / 2;
+
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(x, y, size, size, radius);
+      } else {
+        // Fallback for browsers that don’t support roundRect
+        drawRoundedRect(ctx, x, y, size, size, radius);
+      }
+      ctx.stroke();
 
       if (gameRunning) {
         const now = Date.now();
         if (now - lastShotTime > cooldown) {
-          shootCat(centerX, centerY - 100);
+          shootCat(smoothX, smoothY - 100);
           lastShotTime = now;
         }
       }
@@ -142,6 +207,20 @@ async function detectLoop() {
   requestAnimationFrame(detectLoop);
 }
 
+// Fallback rounded rectangle function
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
 // ✅ SHOOT CAT
 function shootCat(targetX, targetY) {
   // play sound
