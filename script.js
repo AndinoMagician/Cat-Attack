@@ -176,6 +176,8 @@ async function detectLoop() {
       smoothX = smoothX + (centerX - smoothX) * smoothingFactor;
       smoothY = smoothY + (centerY - smoothY) * smoothingFactor;
 
+      smoothY -= 80;
+
       // Draw rounded rectangle
       const size = 100;
       const radius = 15;
@@ -254,7 +256,7 @@ function updateProjectiles() {
       p.hitTime = Date.now();
       score++;
       scoreDisplay.textContent = score;
-      showMessage("Hit! 🐱");
+      showMessage("Hit!");
     }
 
     // keep visible for 1s after hit
