@@ -176,7 +176,7 @@ async function detectLoop() {
       smoothX = smoothX + (centerX - smoothX) * smoothingFactor;
       smoothY = smoothY + (centerY - smoothY) * smoothingFactor;
 
-      smoothY -= 40;
+      smoothY -= 20;
 
       // Draw rounded rectangle
       const size = 100;
